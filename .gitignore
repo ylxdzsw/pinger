@@ -1,0 +1,4 @@
+.denoflare
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

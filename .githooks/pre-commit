@@ -1,0 +1,22 @@
+#!/usr/bin/zsh
+
+dirty=()
+
+for file in **/.denoflare; do
+    if [ ! -f "$file.gpg" ]; then
+        echo "$file" is not encrypted
+        dirty+=("$file")
+    fi
+
+    if [ "$file" -nt "$file.gpg" ]; then
+        echo "$file" is newer than the encrypted version
+        dirty+=("$file")
+    fi
+done
+
+if (( ${#dirty[@]} )); then
+    echo
+    echo Encrypt using the folloing command:
+    echo gpg --encrypt-files -r ylxdzsw@gmail.com "${dirty[@]}"
+    exit 1
+fi
