@@ -71,7 +71,7 @@ router.use("/", auth("archive"), async (ctx, next) => {
         const object = await ctx.env.r2.get(target_url)
 
         if (object == null)
-            return new Response(null, { status: 404 })
+            return ctx.throw(404)
 
         const headers = new Headers()
         object.writeHttpMetadata(headers)
@@ -90,9 +90,9 @@ router.use("/", auth("archive"), async (ctx, next) => {
 router.post("/", auth("archive"), async ctx => {
     const data: { title: string | null, url: string | null, content: string | null } = await ctx.request.json()
     if (data.url == null && data.content == null)
-        return new Response(null, { status: 400 })
+        return ctx.throw(400, "url or content is required")
     if (data.content == null)
-        return new Response("Capturing is unavailable on serverless environment", { status: 400 })
+        return ctx.throw(400, "Capturing is unavailable on serverless environment") // expore https://github.com/Y2Z/monolith ? it can be compiled to wasm (https://github.com/rhysd/monolith-of-web)
 
     try {
         const snapshot_info = parse_snapshot_info(data.content)
@@ -113,7 +113,7 @@ router.post("/", auth("archive"), async ctx => {
         return new Response("OK: " + metadata.url)
     } catch (e) {
         console.error(e)
-        return new Response(null, { status: 400 })
+        return ctx.throw(500, "Failed to save snapshot")
     }
 })
 

@@ -1,7 +1,7 @@
 import { getCookies } from "https://deno.land/std@0.159.0/http/cookie.ts"
-import { IncomingRequestCf, KVNamespace, WorkerContextMethods } from 'https://raw.githubusercontent.com/skymethod/denoflare/v0.5.9/common/cloudflare_workers_types.d.ts'
+import { IncomingRequestCf, KVNamespace, WorkerContextMethods } from 'https://raw.githubusercontent.com/ylxdzsw/denoflare/master/common/cloudflare_workers_types.d.ts'
 
-export * from 'https://raw.githubusercontent.com/skymethod/denoflare/v0.5.9/common/cloudflare_workers_types.d.ts'
+export * from 'https://raw.githubusercontent.com/ylxdzsw/denoflare/master/common/cloudflare_workers_types.d.ts' // https://raw.githubusercontent.com/skymethod/denoflare/v0.5.9/common/cloudflare_workers_types.d.ts
 
 class Context<E> {
     [_: string | number | symbol]: unknown
@@ -32,6 +32,20 @@ class Context<E> {
     get headers() {
         return this.request.headers
     }
+
+    throw(status: number, message?: string): Response {
+        if (message == null) {
+            switch (status) {
+                case 400: message = "Bad Request"; break
+                case 403: message = "Forbidden"; break
+                case 404: message = "Not Found"; break
+                case 405: message = "Method Not Allowed"; break
+                case 500: message = "Internal Server Error"; break
+                default: message = "Unknown Error"
+            }
+        }
+        return new Response(message, { status })
+    }
 }
 
 export type Middleware<E> = (ctx: Context<E>, next: () => Promise<Response>) => Promise<Response>
@@ -54,7 +68,7 @@ class RoutingTree<E> {
             if (this.handlers[ctx.request.method]?.length)
                 hooks.push(...this.handlers[ctx.request.method])
             else
-                hooks.push(async () => new Response('Method not allowed', { status: 405 }))
+                hooks.push(async () => ctx.throw(405))
         } else {
             const segment = segments.shift()!
             const child = this.children[segment] ?? this.children[""]
@@ -63,7 +77,7 @@ class RoutingTree<E> {
                     ctx.params[child.name.slice(1)] = segment
                 return child._route(ctx, segments, hooks)
             } else {
-                hooks.push(async () => new Response('Not found', { status: 404 }))
+                hooks.push(async () => ctx.throw(404))
             }
         }
 
@@ -158,7 +172,7 @@ export function auth(capability: string | null = null) {
     return async (ctx: Context<{ auth: KVNamespace }>, next: () => Promise<Response>): Promise<Response> => {
         const token = ctx.url.searchParams.get("token")
         if (capability && token) {
-            const token_info = await ctx.env.auth.get(token, { type: "text" }) ?? ""
+            const token_info = await ctx.env.auth.get(token) ?? ""
             if (token_info.includes(capability)) {
                 return await next()
             }
@@ -166,7 +180,7 @@ export function auth(capability: string | null = null) {
 
         const auth_cookie = ctx.cookies["auth"]
         if (auth_cookie) {
-            const token_info = await ctx.env.auth.get(auth_cookie, { type: "text" }) ?? ""
+            const token_info = await ctx.env.auth.get(auth_cookie) ?? ""
             if ((capability && token_info.includes(capability)) || token_info.includes("__master__")) {
                 return await next()
             }
@@ -189,13 +203,7 @@ export function error_to_rick(...error_codes: number[]) {
     return async (_: unknown, next: () => Promise<Response>): Promise<Response> => {
         const response = await next()
         if (error_codes.includes(response.status))
-            return new Response(null, {
-                status: 301,
-                headers: {
-                    "location": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-                }
-            })
-
+            return Response.redirect("https://www.youtube.com/watch?v=dQw4w9WgXcQ", 301)
         return response
     }
 }

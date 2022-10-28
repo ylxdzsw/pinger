@@ -1,4 +1,4 @@
-import { S3, S3Bucket } from "https://raw.githubusercontent.com/ylxdzsw/deno_s3/423f5a6bd801b94a029d7a21db4313bdd4359853/mod.ts"
+import { S3 } from "https://raw.githubusercontent.com/ylxdzsw/deno_s3/423f5a6bd801b94a029d7a21db4313bdd4359853/mod.ts"
 import { Database } from "https://deno.land/x/sqlite3@0.6.1/mod.ts"
 import * as flags from "https://deno.land/std@0.159.0/flags/mod.ts"
 

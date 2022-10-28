@@ -37,10 +37,10 @@ router.get("/", auth("url"), async ctx => {
 })
 
 router.get("/:id", async ctx => {
-    const url = await ctx.env.kv.get(ctx.params.id, { type: "text" })
+    const url = await ctx.env.kv.get(ctx.params.id)
     return url
         ? Response.redirect(url, 302)
-        : new Response("Not Found", { status: 404 })
+        : ctx.throw(404)
 })
 
 router.post("/", auth("url"), async ctx => {
@@ -49,7 +49,7 @@ router.post("/", auth("url"), async ctx => {
         const r = crypto.getRandomValues(new Uint8Array(3))
         const id = btoa(String.fromCharCode(...r)).replace(/\//g, "_").replace(/\+/g, "-")
 
-        if (await ctx.env.kv.get(id, { type: "text" }))
+        if (await ctx.env.kv.get(id))
             continue
 
         if (expire && !isNaN(expire) && expire > 0)
@@ -60,7 +60,7 @@ router.post("/", auth("url"), async ctx => {
         return new Response(new URL(id, ctx.url.href).href)
     }
 
-    return new Response("Failed to generate a unique ID", { status: 500 })
+    return ctx.throw(500, "Failed to generate a unique id")
 })
 
 export default router.serve_cf()
